@@ -30,7 +30,7 @@ const smoothMovement = true;
 // Timer Settings
 const timerStartAngle = -Math.PI / 2;
 
-let timerStarted = true;
+let timerStarted = false;
 let timerElapsed = 0;
 let timerLimit = 60 * 60 * 1000;
 let timerWedgeSize = 0;
