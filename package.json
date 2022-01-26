@@ -1,0 +1,11 @@
+{
+  "name": "klockan",
+  "version": "1.0.0",
+  "description": "En klocktavla ritad med Javascript på canvas.",
+  "main": "./scripts/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Martin Eriksson",
+  "license": "MIT"
+}
