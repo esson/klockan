@@ -36,18 +36,18 @@ let timerLimit = 60 * 60 * 1000;
 let timerWedgeSize = 0;
 
 /**
- * Properties for the minute/second tick marker.
+ * Properties for the minute marker.
  */
-const minorTickStyles = {
+const minorMarkerStyles = {
   length: 80 / 3,
   lineWidth: 12,
   strokeStyle: '#111',
 };
 
 /**
- * Properties for the 5 minute/second tick marker.
+ * Properties for the hour marker.
  */
-const majorTickStyles = {
+const majorMarkerStyles = {
   length: 80,
   lineWidth: 24,
   strokeStyle: '#111',
@@ -172,7 +172,9 @@ function loop(time) {
 // Clock Functions
 //
 
-function drawTimer(center, radius, { fillStyle, strokeStyle, lineWidth }, delta) {
+function drawTimer(center, radius, styles, delta) {
+
+  const { fillStyle, strokeStyle, lineWidth } = styles;
 
   if (!timerStarted || timerElapsed >= timerLimit) {
     return;
@@ -284,43 +286,45 @@ function getHandVectors(center, angle, offset, length) {
 }
 
 /**
- * Draws 60 tick marks, with different styles for the minute and hour marks.
+ * Draws 60 markers, with different styles for the minute and hour marks.
  * @param {Vector} center The center position of the clock.
  * @param {number} radius The radius of the clock.
  */
 function drawMarkers(center, radius) {
 
   const minuteMarks = 60;
-  const hourTick = 60 / 12;
+  const hourMarker = 60 / 12;
 
-  for (let i = 0; i <= minuteMarks; i++) {
+  for (let i = 0; i < minuteMarks; i++) {
     const x = Math.cos(Math.PI * 2 / minuteMarks * i);
     const y = Math.sin(Math.PI * 2 / minuteMarks * i);
     const end = new Vector(x, y);
 
-    // Every 5 minute tick is an hour mark, others are minute marks.
-    const tick = i % hourTick === 0 ? majorTickStyles : minorTickStyles;
+    // Every 5 minute marker is an hour mark, others are minute marks.
+    const markerStyles = i % hourMarker === 0 ? majorMarkerStyles : minorMarkerStyles;
 
-    drawMarker(center, end, radius, tick);
+    drawMarker(center, end, radius, markerStyles);
   }
 }
 
 /**
  * Draws a marker on the clock.
  * @param {Vector} center The center position of the clock.
- * @param {Vector} position The position of the tick mark.
- * @param {number} radius The radius from where the tick mark will start.
- * @param {any} props The styles of the tick mark.
+ * @param {Vector} position The position of the marker.
+ * @param {number} radius The radius from where the marker will start.
+ * @param {any} styles The styles of the marker.
  */
-function drawMarker(center, position, radius, props) {
+function drawMarker(center, position, radius, styles) {
 
-  // Draw the tick starting from the length of the radius and then
+  const { length } = styles;
+
+  // Draw the marker starting from the length of the radius and then
   // moving towards the center by the provided length.
 
   const start = center.add(position.multiply(radius));
-  const end = center.add(position.multiply(radius - props.length));
+  const end = center.add(position.multiply(radius - length));
 
-  drawLine(start, end, props);
+  drawLine(start, end, styles);
 }
 
 // Canvas Functions
@@ -330,9 +334,11 @@ function drawMarker(center, position, radius, props) {
  * Draws a line using stroke on the canvas.
  * @param {Vector} start The start position.
  * @param {Vector} end The end position.
- * @param {any} param The styles.
+ * @param {any} styles The styles of the line.
  */
-function drawLine(start, end, { lineWidth, strokeStyle }) {
+function drawLine(start, end, styles) {
+
+  const { lineWidth, strokeStyle } = styles;
 
   ctx.beginPath();
   ctx.moveTo(start.x, start.y);
@@ -347,9 +353,11 @@ function drawLine(start, end, { lineWidth, strokeStyle }) {
  * Draws a circle on the canvas.
  * @param {Vector} center The center position.
  * @param {number} radius The radius.
- * @param {any} props The styles.
+ * @param {any} styles The styles of the circle.
  */
-function drawCircle(center, radius, { fillStyle, lineWidth, strokeStyle }) {
+function drawCircle(center, radius, styles) {
+
+  const { fillStyle, lineWidth, strokeStyle } = styles;
 
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI, false);
@@ -368,9 +376,12 @@ function drawCircle(center, radius, { fillStyle, lineWidth, strokeStyle }) {
 
 /**
  * Sets the drop shadow styles on the context.
- * @param {any} props
+ * @param {any} styles The styles of the shadow.
  */
-function setDropShadow({ shadowColor, shadowBlur, shadowOffset }) {
+function setDropShadow(styles) {
+  
+  const { shadowColor, shadowBlur, shadowOffset } = styles;
+
   ctx.shadowColor = shadowColor ?? 'rgba(0, 0, 0, 0)';
   ctx.shadowBlur = shadowBlur ?? 0;
   ctx.shadowOffsetX = shadowOffset?.x ?? 0;
