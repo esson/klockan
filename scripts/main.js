@@ -20,7 +20,7 @@ const ctx = canvas.getContext('2d');
  */
 const baseCanvasSize = new Vector(1000);
 
-const clockRadius = 420;
+const clockRadius = baseCanvasSize.y / 2 * 0.9;
 const clockCenter = baseCanvasSize.divide(2);
 const clockBackgroundColor = 'white';
 const clockPadding = 20;
@@ -104,6 +104,7 @@ let scale = null;
 
 window.addEventListener('resize', handleResize);
 container.addEventListener('dblclick', toggleFullscreen);
+window.matchMedia('screen and (min-resolution: 2dppx)').addEventListener('change', handleResize);
 
 // Main
 //
@@ -125,24 +126,66 @@ function handleResize() {
   const targetSide = Math.min(window.innerWidth, window.innerHeight);
   const windowSize = new Vector(targetSide);
 
-  // Update the canvas size.
-  canvas.width = windowSize.x;
-  canvas.height = windowSize.y;
+  // Get the pixel ratio to use for scaling.
+  const devicePixelRatio = window.devicePixelRatio || 1;
+
+  // Set the canvas size.
+  canvas.width = windowSize.x * devicePixelRatio;
+  canvas.height = windowSize.y * devicePixelRatio;
+
+  // Set the canvas display size.
+  canvas.style.width = windowSize.x + 'px';
+  canvas.style.height = windowSize.y + 'px';
 
   // Calculate and set the scale.
-  scale = windowSize.divide(baseCanvasSize);
+  scale = windowSize.multiply(devicePixelRatio).divide(baseCanvasSize);
   ctx.scale(scale.x, scale.y);
 };
+
+/**
+ * Handle cross-browser requestFullscreen.
+ * @param {HTMLElement} element The element to use as fullscreen.
+ */
+function requestFullscreen(element) {
+  if (element.requestFullscreen) {
+    element.requestFullscreen();
+  } else if (element.webkitRequestFullscreen) {
+    element.webkitRequestFullscreen();
+  }
+}
+
+/**
+ * Handle cross-browser exitFullscreen.
+ */
+function exitFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  }
+}
+
+/**
+ * Handle cross-browser fullscreenElement.
+ * @returns 
+ */
+function getFullscreenElement() {
+  if (document.fullscreenElement) {
+    return document.fullscreenElement;
+  }
+
+  return document.webkitFullscreenElement;
+}
 
 /**
  * Toggles the container as the fullscreen element.
  */
 function toggleFullscreen() {
 
-  if (document.fullscreenElement) {
-    document.exitFullscreen();
+  if (getFullscreenElement()) {
+    exitFullscreen();
   } else {
-    container.requestFullscreen();
+    requestFullscreen(container);
   }
 };
 
