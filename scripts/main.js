@@ -97,8 +97,6 @@ const timerStyles = {
   fillStyle: '#c00'
 };
 
-let scale = null;
-
 // Event Bindings
 //
 
@@ -138,7 +136,7 @@ function handleResize() {
   canvas.style.height = windowSize.y + 'px';
 
   // Calculate and set the scale.
-  scale = windowSize.multiply(devicePixelRatio).divide(baseCanvasSize);
+  const scale = windowSize.multiply(devicePixelRatio).divide(baseCanvasSize);
   ctx.scale(scale.x, scale.y);
 };
 
@@ -204,10 +202,10 @@ function loop(time) {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  drawClockFace(clockCenter, clockRadius);
-  drawTimer(clockCenter, clockRadius, timerStyles, delta);
-  drawMarkers(clockCenter, clockRadius - clockPadding);
-  drawHands(clockCenter, clockRadius - clockPadding);
+  drawClockFace(ctx, clockCenter, clockRadius);
+  drawTimer(ctx, clockCenter, clockRadius, timerStyles, delta);
+  drawMarkers(ctx, clockCenter, clockRadius - clockPadding);
+  drawHands(ctx, clockCenter, clockRadius - clockPadding);
 
   requestAnimationFrame(loop);
 }
@@ -215,7 +213,16 @@ function loop(time) {
 // Clock Functions
 //
 
-function drawTimer(center, radius, styles, delta) {
+/**
+ * Draws a circle with a wedge gap to illustrate elapsed time since timer started.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
+ * @param {Vector} center The center position.
+ * @param {number} radius The radius of the timer circle.
+ * @param {any} styles The styles.
+ * @param {number} delta The time elapsed since the last draw.
+ * @returns 
+ */
+function drawTimer(ctx, center, radius, styles, delta) {
 
   const { fillStyle, strokeStyle, lineWidth } = styles;
 
@@ -250,15 +257,22 @@ function drawTimer(center, radius, styles, delta) {
   timerWedgeSize = (timerElapsed / timerLimit) * Math.PI * 2;
 }
 
-function drawClockFace(center, radius) {
-  drawCircle(center, radius, { fillStyle: clockBackgroundColor });
+/**
+ * Draws the clock face.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
+ * @param {Vector} center The center position.
+ * @param {number} radius The radius of the clock face.
+ */
+function drawClockFace(ctx, center, radius) {
+  drawCircle(ctx, center, radius, { fillStyle: clockBackgroundColor });
 }
 
 /**
  * Draws the hour, minute and second hands.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
  * @param {Vector} center 
  */
-function drawHands(center) {
+function drawHands(ctx, center) {
 
   const time = new Date();
 
@@ -285,12 +299,12 @@ function drawHands(center) {
   const second = getHandVectors(center, secondHandAngle, secondHandStyles.offset, secondHandStyles.length);
 
   // Draw the Hour Hand
-  setDropShadow(hourHandStyles);
-  drawLine(hour[0], hour[1], hourHandStyles);
+  setDropShadow(ctx, hourHandStyles);
+  drawLine(ctx, hour[0], hour[1], hourHandStyles);
 
   // Draw the Minute Hand
-  setDropShadow(minuteHandStyles);
-  drawLine(minute[0], minute[1], minuteHandStyles);
+  setDropShadow(ctx, minuteHandStyles);
+  drawLine(ctx, minute[0], minute[1], minuteHandStyles);
 
   // Draw the Second Hand
   // The second hand is multiple elements and we have to prevent the shadow
@@ -298,15 +312,15 @@ function drawHands(center) {
   // two passes. First we draw all elements with the shadow, then we draw
   // the elements again without shadow.
   //
-  setDropShadow(secondHandStyles);
-  drawLine(second[0], second[1], secondHandStyles);
-  drawCircle(second[1], 40, secondHandStyles);
-  drawCircle(center, 10, secondHandStyles);
+  setDropShadow(ctx, secondHandStyles);
+  drawLine(ctx, second[0], second[1], secondHandStyles);
+  drawCircle(ctx, second[1], 40, secondHandStyles);
+  drawCircle(ctx, center, 10, secondHandStyles);
 
-  setDropShadow({});
-  drawLine(second[0], second[1], secondHandStyles);
-  drawCircle(second[1], 40, secondHandStyles);
-  drawCircle(center, 10, secondHandStyles);
+  setDropShadow(ctx, {});
+  drawLine(ctx, second[0], second[1], secondHandStyles);
+  drawCircle(ctx, second[1], 40, secondHandStyles);
+  drawCircle(ctx, center, 10, secondHandStyles);
 
   // Restore the context rotation.
   ctx.restore();
@@ -330,10 +344,11 @@ function getHandVectors(center, angle, offset, length) {
 
 /**
  * Draws 60 markers, with different styles for the minute and hour marks.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
  * @param {Vector} center The center position of the clock.
  * @param {number} radius The radius of the clock.
  */
-function drawMarkers(center, radius) {
+function drawMarkers(ctx, center, radius) {
 
   const minuteMarks = 60;
   const hourMarker = 60 / 12;
@@ -346,18 +361,19 @@ function drawMarkers(center, radius) {
     // Every 5 minute marker is an hour mark, others are minute marks.
     const markerStyles = i % hourMarker === 0 ? majorMarkerStyles : minorMarkerStyles;
 
-    drawMarker(center, end, radius, markerStyles);
+    drawMarker(ctx, center, end, radius, markerStyles);
   }
 }
 
 /**
  * Draws a marker on the clock.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
  * @param {Vector} center The center position of the clock.
  * @param {Vector} position The position of the marker.
  * @param {number} radius The radius from where the marker will start.
  * @param {any} styles The styles of the marker.
  */
-function drawMarker(center, position, radius, styles) {
+function drawMarker(ctx, center, position, radius, styles) {
 
   const { length } = styles;
 
@@ -367,7 +383,7 @@ function drawMarker(center, position, radius, styles) {
   const start = center.add(position.multiply(radius));
   const end = center.add(position.multiply(radius - length));
 
-  drawLine(start, end, styles);
+  drawLine(ctx, start, end, styles);
 }
 
 // Canvas Functions
@@ -375,11 +391,12 @@ function drawMarker(center, position, radius, styles) {
 
 /**
  * Draws a line using stroke on the canvas.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
  * @param {Vector} start The start position.
  * @param {Vector} end The end position.
  * @param {any} styles The styles of the line.
  */
-function drawLine(start, end, styles) {
+function drawLine(ctx, start, end, styles) {
 
   const { lineWidth, strokeStyle } = styles;
 
@@ -394,11 +411,12 @@ function drawLine(start, end, styles) {
 
 /**
  * Draws a circle on the canvas.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
  * @param {Vector} center The center position.
  * @param {number} radius The radius.
  * @param {any} styles The styles of the circle.
  */
-function drawCircle(center, radius, styles) {
+function drawCircle(ctx, center, radius, styles) {
 
   const { fillStyle, lineWidth, strokeStyle } = styles;
 
@@ -419,9 +437,10 @@ function drawCircle(center, radius, styles) {
 
 /**
  * Sets the drop shadow styles on the context.
+ * @param {CanvasRenderingContext2D} ctx The drawing context.
  * @param {any} styles The styles of the shadow.
  */
-function setDropShadow(styles) {
+function setDropShadow(ctx, styles) {
   
   const { shadowColor, shadowBlur, shadowOffset } = styles;
 
