@@ -27,6 +27,12 @@ export default class Vector {
     divide(x, y) {
       return this.operate(x, y, '/');
     }
+
+    distanceFrom(vector) {
+      var dx = vector.x - this.x,
+          dy = vector.y - this.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
   
     operate(x, y, operation) {
       if (x instanceof Vector) {

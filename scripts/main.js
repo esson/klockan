@@ -20,6 +20,11 @@ const ctx = canvas.getContext('2d');
  */
 const baseCanvasSize = new Vector(1000);
 
+/**
+ * The scale that the canvas should draw in.
+ */
+let scale = new Vector(1);
+
 const clockRadius = baseCanvasSize.y / 2 * 0.9;
 const clockCenter = baseCanvasSize.divide(2);
 const clockBackgroundColor = 'white';
@@ -32,7 +37,7 @@ const timerStartAngle = -Math.PI / 2;
 
 let timerStarted = false;
 let timerElapsed = 0;
-let timerLimit = 60 * 60 * 1000;
+let timerLimit = 0;
 let timerWedgeSize = 0;
 
 /**
@@ -94,15 +99,34 @@ const secondHandStyles = Object.assign({}, baseHandStyles, {
  * Properties for the timer circle.
  */
 const timerStyles = {
-  fillStyle: '#c00'
+  fillStyle: '#800'
 };
 
 // Event Bindings
 //
 
+// Handle Resize
 window.addEventListener('resize', handleResize);
-container.addEventListener('dblclick', toggleFullscreen);
+// Handle Pixel Ratio
 window.matchMedia('screen and (min-resolution: 2dppx)').addEventListener('change', handleResize);
+
+// Handle Clicks
+let clickDebounceId;
+
+// Double-Click > Go to Fullscreen
+container.addEventListener('dblclick', (e) => {
+  clearTimeout(clickDebounceId);
+  toggleFullscreen();
+});
+
+// Single-Click > Start Timer
+canvas.addEventListener('click', (e) => {
+  clearTimeout(clickDebounceId);
+  clickDebounceId = setTimeout(() => {
+    handleClick(e);
+  }, 200);
+});
+
 
 // Main
 //
@@ -114,6 +138,42 @@ requestAnimationFrame(loop);
 
 // Event Handlers
 //
+
+function handleClick(e) {
+
+  const target = getClickPosition(e);
+
+  let timerHit = null;
+  let outerRadius = clockRadius - clockPadding;
+
+  for (let i = -14; i < 46; i++) {
+    const x = Math.cos(Math.PI * 2 / 60 * i);
+    const y = Math.sin(Math.PI * 2 / 60 * i);
+
+    let markerStyles = i % 5 === 0 ? majorMarkerStyles : minorMarkerStyles;
+
+    // Calculate the position of the hour marker.
+    const marker = new Vector(x, y).multiply(outerRadius - markerStyles.length / 2);
+    const markerZone = clockCenter.add(marker);
+
+    if (target.distanceFrom(markerZone) < markerStyles.length / 2) {
+      timerHit = i + 15;
+      break;
+    }
+  }
+
+  if (timerHit != null) {
+    // Start the timer.
+    timerElapsed = 0;
+    timerLimit = timerHit * 60 * 1000;
+    timerStarted = true;
+  } else if (timerStarted && timerElapsed >= timerLimit) {
+    // Reset timer.
+    timerElapsed = 0;
+    timerLimit = 0;
+    timerStarted = false;
+  }
+}
 
 /**
  * Event handler for window resize. Resizes the canvas element and sets the correct scale.
@@ -136,9 +196,25 @@ function handleResize() {
   canvas.style.height = windowSize.y + 'px';
 
   // Calculate and set the scale.
-  const scale = windowSize.multiply(devicePixelRatio).divide(baseCanvasSize);
+  scale = windowSize.multiply(devicePixelRatio).divide(baseCanvasSize);
   ctx.scale(scale.x, scale.y);
-};
+}
+
+// Utilities
+//
+
+/**
+ * Gets a mouse position vector relative to the scaled canvas.
+ * @param {MouseEvent} e The mouse event.
+ */
+ function getClickPosition(e) {
+  const boundingClientRect = e.target.getBoundingClientRect();
+  
+  const offset = new Vector(boundingClientRect.left, boundingClientRect.top);
+  const client = new Vector(e.clientX, e.clientY);
+
+  return client.subtract(offset).divide(scale);
+}
 
 /**
  * Handle cross-browser requestFullscreen.
@@ -185,7 +261,7 @@ function toggleFullscreen() {
   } else {
     requestFullscreen(container);
   }
-};
+}
 
 // Animation Functions
 //
@@ -226,7 +302,7 @@ function drawTimer(ctx, center, radius, styles, delta) {
 
   const { fillStyle, strokeStyle, lineWidth } = styles;
 
-  if (!timerStarted || timerElapsed >= timerLimit) {
+  if (!timerStarted) {
     return;
   }
 
@@ -252,6 +328,11 @@ function drawTimer(ctx, center, radius, styles, delta) {
 
   // Update elapsed time.
   timerElapsed += delta;
+
+  // Don't let it exceed.
+  if (timerElapsed > timerLimit) {
+    timerElapsed = timerLimit;
+  }
 
   // Update the wedge gap.
   timerWedgeSize = (timerElapsed / timerLimit) * Math.PI * 2;
